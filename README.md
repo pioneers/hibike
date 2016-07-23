@@ -15,6 +15,7 @@ concurrency.
 
 Refer to Section 5 for an outline of the general behavior of the Hibike protocol.
 
+Stanley was here!
 
 ## Section 1: General Message Structure
 All messages have the relatively simple structure of Message ID, Payload, and Checksum as
