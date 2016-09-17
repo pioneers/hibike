@@ -11,6 +11,7 @@ typedef enum {
   COLOR_SENSOR = 0x09,
   DISTANCE_SENSOR = 0x10,
   METAL_DETECTOR = 0x11,
+  YOGI_BEAR = 0x42,
   EXAMPLE_DEVICE = 0xFFFF
 } deviceID;
 
