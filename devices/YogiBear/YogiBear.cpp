@@ -18,9 +18,17 @@ uint32_t forward;
 uint32_t inputA;
 uint32_t inputB;
 
+int INA = IO5;
+int INB = IO6;
+int PWM = IO7;
+int EN = IO4;
+
 // normal arduino setup function, you must call hibike_setup() here
 void setup() {
   hibike_setup();
+  pinMode(INA, OUTPUT);
+  pinMode(INB, OUTPUT);
+  pinMode(PWM, OUTPUT);
 }
 
 // normal arduino loop function, you must call hibike_loop() here
@@ -34,7 +42,8 @@ void loop() {
   //   value2++;
   //   value3++;
   //   value4++;
-
+  digitalWrite(INA, LOW);
+  digitalWrite(INB, HIGH);
   hibike_loop();
 }
 
@@ -61,8 +70,10 @@ uint32_t device_update(uint8_t param, uint32_t value) {
   switch (param) {
 
     case DUTY:
-      if (value <= 100) && (value >= 0) {
+      if ((value <= 100) && (value >= 0)) {
         duty = value;
+        int scaled255 = value * (255/100);
+        analogWrite(PWM, scaled255);
       }
       return duty;
       break;
@@ -80,6 +91,14 @@ uint32_t device_update(uint8_t param, uint32_t value) {
       inputB = 0;
       return forward;
       break;
+
+    case FAULT:
+      if (fault == 0){
+          clearFault();
+          return fault;
+      } else {
+          return fault;
+      }
 
     default:
       return ~((uint32_t) 0);
@@ -103,6 +122,10 @@ uint32_t device_status(uint8_t param) {
       
     case FORWARD:
       return forward;
+      break;
+
+    case REVERSE:
+      return !forward;
       break;
   }
   return ~((uint32_t) 0);
