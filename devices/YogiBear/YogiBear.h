@@ -16,10 +16,10 @@ hibike_uid_t UID = {
 #define NUM_PARAMS 5
 
 typedef enum {
-  DUTY,
-  FAULT, //EN Value. high = operating, low = fault
-  FORWARD,
-  REVERSE
+  DUTY = 0,
+  FAULT = 1,
+  FORWARD = 2,
+  REVERSE = 3
 } param;
 
 // function prototypes
