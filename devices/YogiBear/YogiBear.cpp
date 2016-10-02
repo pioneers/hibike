@@ -38,22 +38,14 @@ void setup() {
   digitalWrite(IN_ENA, HIGH);
   pinMode(IN_ENB, INPUT); 
   digitalWrite(IN_ENB, HIGH);
+  digitalWrite(INA, LOW);
+  digitalWrite(INB, HIGH);
   attachInterrupt(0, doEncoder, CHANGE);
 }
 
 // normal arduino loop function, you must call hibike_loop() here
 // hibike_loop will look for any packets in the serial buffer and handle them
 void loop() {
-
-  // do whatever you want here
-  // note that hibike will only process one packet per call to hibike_loop()
-  // so exessive delays here will affect hibike.
-  // value1++;
-  //   value2++;
-  //   value3++;
-  //   value4++;
-  digitalWrite(INA, LOW);
-  digitalWrite(INB, HIGH);
   hibike_loop();
 }
 
@@ -92,6 +84,8 @@ uint32_t device_update(uint8_t param, uint32_t value) {
       forward = 1;
       inputA = 0;
       inputB = 1;
+      digitalWrite(INA, LOW);
+      digitalWrite(INB, HIGH);
       return forward;
       break;
 
@@ -99,6 +93,8 @@ uint32_t device_update(uint8_t param, uint32_t value) {
       forward = 0;
       inputA = 1;
       inputB = 0;
+      digitalWrite(INA, HIGH);
+      digitalWrite(INB, LOW);
       return forward;
       break;
 
