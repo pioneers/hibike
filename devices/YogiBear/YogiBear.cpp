@@ -12,6 +12,14 @@ uint32_t params[NUM_PARAMS];
     inputB : {1 = High, 0 = Low}
 */
 
+/*
+   These variables have nothing to do with the
+   json file other than the fact that they have the
+   same name, but these could have been named anything.
+   They are simply dummy variables for hibike to interface with.
+   The realization of the control is reflected in the arduino
+   code.
+*/
 uint32_t duty;
 uint32_t fault;
 uint32_t forward;
