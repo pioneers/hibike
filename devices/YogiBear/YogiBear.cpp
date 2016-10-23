@@ -18,13 +18,13 @@ uint32_t forward;
 uint32_t inputA;
 uint32_t inputB;
 
-int INA = IO5;
-int INB = IO6;
+int INA = 4;
+int INB = 7;
 int PWM = IO7;
 int EN = IO4;
 
-int IN_ENA = I08;
-int IN_ENB = IO9;
+// int IN_ENA = I08;
+// int IN_ENB = IO9;
 volatile unsigned int encoder0Pos = 0; 
 //might need to process or not make unsigned
 
@@ -34,13 +34,13 @@ void setup() {
   pinMode(INA, OUTPUT);
   pinMode(INB, OUTPUT);
   pinMode(PWM, OUTPUT);
-  pinMode(IN_ENA, INPUT); 
-  digitalWrite(IN_ENA, HIGH);
-  pinMode(IN_ENB, INPUT); 
-  digitalWrite(IN_ENB, HIGH);
+  // pinMode(IN_ENA, INPUT); 
+  // digitalWrite(IN_ENA, HIGH);
+  // pinMode(IN_ENB, INPUT); 
+  // digitalWrite(IN_ENB, HIGH);
   digitalWrite(INA, LOW);
   digitalWrite(INB, HIGH);
-  attachInterrupt(0, doEncoder, CHANGE);
+  // attachInterrupt(0, doEncoder, CHANGE);
 }
 
 // normal arduino loop function, you must call hibike_loop() here
@@ -100,7 +100,7 @@ uint32_t device_update(uint8_t param, uint32_t value) {
 
     case FAULT:
       if (fault == 0){
-          clearFault();
+          // clearFault();
           return fault;
       } else {
           return fault;
@@ -133,8 +133,6 @@ uint32_t device_status(uint8_t param) {
     case REVERSE:
       return !forward;
       break;
-      //case ENCODER:
-      //
   }
   return ~((uint32_t) 0);
 }
@@ -149,17 +147,4 @@ uint32_t device_status(uint8_t param) {
 uint8_t data_update(uint8_t* data_update_buf, size_t buf_len) {
   uint8_t offset = 0;
   return offset;
-}
-
-void doEncoder() {
-  /* If pinA and pinB are both high or both low, it is spinning
-   * forward. If they're different, it's going backward.
-   */
-  if (digitalRead(IN_ENA) == digitalRead(IN_ENB)) {
-    encoder0Pos++;
-  } else {
-    encoder0Pos--;
-  }
-
-  Serial.println(encoder0Pos);
 }
