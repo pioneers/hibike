@@ -11,32 +11,33 @@ uint32_t params[NUM_PARAMS];
     forward : {1 = forward, 0 = reverse}
     inputA : {1 = High, 0 = Low}
     inputB : {1 = High, 0 = Low}
-    vel : {0 to maximum velocity (encoder difference)}
-    CCW : {0 = one direction, 1 = the other}
+    velocity : {0 to maximum velocity (encoder difference)}
     limit_state: {STANDARD, CAUGHT_MAX, LIMIT, SPIKE}
 */
 
-/*
-   These variables have nothing to do with the
-   json file other than the fact that they have the
-   same name, but these could have been named anything.
-   They are simply dummy variables for hibike to interface with.
-   The realization of the control is reflected in the arduino
-   code.
-*/
 uint32_t duty;
 uint32_t fault;
 uint32_t forward;
 uint32_t inputA;
 uint32_t inputB;
-uint8_t PWM_val;
-volatile unsigned int vel = 0;
-volatile boolean CCW = true;
 
-int current_threshold = 100;
+volatile unsigned int velCounter = 0;
+volatile int velocity = 0;
+
+#define LIMITED 4 //how much we limit PWM by
+
+//CONDITIONS TO SWITCH STATES
+int current_threshold = 40; //threshold for duty cycle values, equates to about 3 amps when motor is stalled.
+
+int in_max = 0; //how many times we have been in the CAUGHT_MAX state
+#define EXIT_MAX 17000 //**FIXME** how many times we want to be in CAUGHT_MAX before moving onto LIMIT state
 int above_threshold = 0;
-int in_limit = 0;
-int in_spike = 0;
+
+int in_limit = 0; //how many times we have been in the LIMIT state
+#define EXIT_LIMIT 20000 //**FIXME** how many times we want to be in LIMIT before moving onto SPIKE state
+
+int in_spike = 0; //how many times we have been in the SPIKE state
+#define EXIT_SPIKE 5000 //**FIXME** how many times we want to be in SPIKE before moving onto either the STANDARD or LIMIT state
 int below_threshold = 0;
 
 //FSM STATES
@@ -57,13 +58,6 @@ int CS = 8;
 #define encoder0PinB  3
 volatile unsigned int encoder0Pos = 0;
 
-int INA = 4;
-int INB = 7;
-int PWM = IO7;
-int EN = IO4;
-
-volatile unsigned int encoder0Pos = 0;
-
 void setup() {
   hibike_setup();
   pinMode(encoder0PinA, INPUT);
@@ -80,9 +74,7 @@ void setup() {
   digitalWrite(INA, LOW);
   digitalWrite(INB, HIGH);
   attachInterrupt(digitalPinToInterrupt(encoder0PinA), doEncoder_Expanded, CHANGE);
-
-  digitalWrite(INA, LOW);
-  digitalWrite(INB, HIGH);
+  Timer1.attachInterrupt(interrupt, 1000);
 }
 
 void loop() {
@@ -95,7 +87,7 @@ uint32_t device_update(uint8_t param, uint32_t value) {
     case DUTY:
       if ((value <= 100) && (value >= 0)) {
         duty = value;
-        PWM_val = value * (255/100);
+        int PWM_val = value * (255/100);
         analogWrite(PWM, PWM_val);
       }
       return duty;
@@ -152,6 +144,11 @@ uint32_t device_status(uint8_t param) {
 
     case CURRLIMSTATE:
       return limit_state;
+      break;
+
+    case VELOCITY:
+      return velocity;
+      break;
   }
   return ~((uint32_t) 0);
 }
@@ -161,11 +158,9 @@ void doEncoder_Expanded(){
     if (digitalRead(encoder0PinB) == LOW) {  // check channel B to see which way
                                              // encoder is turning
       encoder0Pos = encoder0Pos - 1;         // CCW
-      CCW = true;
     }
     else {
       encoder0Pos = encoder0Pos + 1;         // CW
-      CCW = false;
     }
   }
   else                                        // found a high-to-low on channel A
@@ -173,23 +168,26 @@ void doEncoder_Expanded(){
     if (digitalRead(encoder0PinB) == LOW) {   // check channel B to see which way
                                               // encoder is turning
       encoder0Pos = encoder0Pos + 1;          // CW
-      CCW = false;
     }
     else {
       encoder0Pos = encoder0Pos - 1;          // CCW
-      CCW = true;
     }
   }
-  Serial.println(encoder0Pos);
 }
 
 void velocity(){
-  vel = encoder0Pos - old_encoder0Pos;
-  old_encoder0Pos = encoder0Pos; //calculate for the next vel calc
+  if (velCounter  == 1000){
+    velocity = encoder0Pos - old_encoder0Pos;
+    old_encoder0Pos = encoder0Pos; //calculate for the next velocity calc
+    velCounter = 0;
+  }
+  else {
+    velCounter += 1;
+  }
 }
 
 void current_limiting() {
-  int targetPWM = PWM_val;
+  int targetPWM = duty;
   int current_read = analogRead(current_pin);
   if (targetPWM < 0) {
     pwm_sign = -1;
@@ -202,7 +200,6 @@ void current_limiting() {
     case STANDARD: //we allow the pwm to be passed through normally and check to see if the CURRENT ever spikes above the threshold
       if (current_read > current_threshold) {
         limit_state = CAUGHT_MAX;
-        Serial.println("from STANDARD to CAUGHT_MAX");
       } else {
         if (above_threshold > 0) {
           above_threshold--;
@@ -212,11 +209,9 @@ void current_limiting() {
     case CAUGHT_MAX: //we have seen the max and we check to see if we are above max for EXIT_MAX consecutive cycles and then we go to LIMIT to protect the motor
       if (in_max > EXIT_MAX) {
         if(above_threshold >= EXIT_SPIKE / 2) {
-          Serial.println("from CAUGHT_MAX to LIMIT");
           above_threshold = 0;
           limit_state = LIMIT;
         } else {
-          Serial.println("from CAUGHT_MAX to STANDARD");
           limit_state = STANDARD;
         }
         in_max = 0;
@@ -230,7 +225,6 @@ void current_limiting() {
     case LIMIT: //we limit the pwm to 0.25 the value and wait EXIT_LIMIT cycles before attempting to spike and check the current again
       targetPWM = targetPWM / LIMITED;
       if (in_limit > EXIT_LIMIT) {
-        Serial.println("from LIMIT to SPIKE");
         in_limit = 0;
         limit_state = SPIKE;
       } else {
@@ -241,10 +235,8 @@ void current_limiting() {
       if (in_spike > EXIT_SPIKE) {
         Serial.println(below_threshold);
         if (below_threshold >= (EXIT_SPIKE/100)*99) {
-          Serial.println("from SPIKE to STANDARD");
           limit_state = STANDARD;
         } else {
-          Serial.println("from SPIKE to LIMIT");
           limit_state = LIMIT;
         }
         below_threshold = 0;
@@ -258,4 +250,9 @@ void current_limiting() {
       break;
   }
   analogWrite(PWM, targetPWM * pwm_sign);
+}
+
+void interrupt(){
+  velocity();
+  current_limiting();
 }

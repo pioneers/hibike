@@ -13,5 +13,6 @@ d{
         "forward",
         "reverse",
         "currentLimitState"
+        "velocity"
     ]
 }
