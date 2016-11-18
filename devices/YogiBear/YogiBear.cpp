@@ -16,6 +16,14 @@ uint32_t params[NUM_PARAMS];
     limit_state: {STANDARD, CAUGHT_MAX, LIMIT, SPIKE}
 */
 
+/*
+   These variables have nothing to do with the
+   json file other than the fact that they have the
+   same name, but these could have been named anything.
+   They are simply dummy variables for hibike to interface with.
+   The realization of the control is reflected in the arduino
+   code.
+*/
 uint32_t duty;
 uint32_t fault;
 uint32_t forward;
@@ -49,6 +57,13 @@ int CS = 8;
 #define encoder0PinB  3
 volatile unsigned int encoder0Pos = 0;
 
+int INA = 4;
+int INB = 7;
+int PWM = IO7;
+int EN = IO4;
+
+volatile unsigned int encoder0Pos = 0;
+
 void setup() {
   hibike_setup();
   pinMode(encoder0PinA, INPUT);
@@ -59,11 +74,15 @@ void setup() {
   pinMode(INA, OUTPUT);
   pinMode(INB, OUTPUT);
   pinMode(PWM, OUTPUT);
+
   pinMode(CS, INPUT);
 
   digitalWrite(INA, LOW);
   digitalWrite(INB, HIGH);
   attachInterrupt(digitalPinToInterrupt(encoder0PinA), doEncoder_Expanded, CHANGE);
+
+  digitalWrite(INA, LOW);
+  digitalWrite(INB, HIGH);
 }
 
 void loop() {
@@ -102,7 +121,7 @@ uint32_t device_update(uint8_t param, uint32_t value) {
 
     case FAULT:
       if (fault == 0){
-          clearFault();
+          // clearFault();
           return fault;
       } else {
           return fault;
@@ -113,12 +132,7 @@ uint32_t device_update(uint8_t param, uint32_t value) {
   }
 }
 
-// you must implement this function. It is called when the device receives a DeviceStatus packet.
-// the return value is the value field of the DeviceRespond packet hibike will respond with
 uint32_t device_status(uint8_t param) {
-  // if (param < NUM_PARAMS) {
-  //   return params[param];
-  // }
   switch (param) {
     case DUTY:
       return duty;
