@@ -20,6 +20,7 @@ typedef enum {
   FAULT = 1,
   FORWARD = 2,
   REVERSE = 3
+  CURRLIMSTATE = 4,
 } param;
 
 // function prototypes

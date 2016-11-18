@@ -1,4 +1,4 @@
-{
+d{
     "deviceID": "0x0042",
     "deviceName": "YogiBear",
     "dataFormat": {
@@ -11,6 +11,7 @@
         "duty",
         "fault",
         "forward",
-        "reverse"        
+        "reverse",
+        "currentLimitState"
     ]
 }
